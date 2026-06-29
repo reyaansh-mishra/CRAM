@@ -1,0 +1,14 @@
+{
+    "files.exclude": {
+		"**/*.cmd": true,
+        "**/*.o": true,
+        "**/*.ko": true,
+        "**/*.mod": true,
+        "**/*.mod.c": true,
+        "**/*.symvers": true,
+        "**/*modules.order": true,
+        ".tmp_versions": true,
+        "**/build*": true,
+        "**/compile*": true,
+    }
+}

@@ -1,0 +1,3 @@
+/home/reyaansh/Projects/cram/build/CMakeFiles/cram_module.dir
+/home/reyaansh/Projects/cram/build/CMakeFiles/edit_cache.dir
+/home/reyaansh/Projects/cram/build/CMakeFiles/rebuild_cache.dir

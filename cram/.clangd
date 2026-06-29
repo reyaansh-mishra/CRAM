@@ -1,0 +1,18 @@
+CompileFlags:
+  Add:
+    # Global Kernel Includes
+    - -isystem/home/reyaansh/Github/Linux/include
+    - -isystem/home/reyaansh/Github/Linux/include/generated
+    - -isystem/home/reyaansh/Github/Linux/include/uapi
+
+    # Architecture-Specific Includes (Fixes asm/ errors)
+    - -isystem/home/reyaansh/Github/Linux/arch/x86/include
+    - -isystem/home/reyaansh/Github/Linux/arch/x86/include/generated
+    - -isystem/home/reyaansh/Github/Linux/arch/x86/include/uapi
+    - -isystem/home/reyaansh/Github/Linux/arch/x86/include/generated/uapi
+
+    # Kernel Defines & Compiler Constraints
+    - -D__KERNEL__
+    - -DMODULE
+    - -nostdinc
+    - -ffreestanding
