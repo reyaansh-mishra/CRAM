@@ -1,1 +1,0 @@
-savedcmd_cram.ko := ld.lld -r -m elf_x86_64 -mllvm -import-instr-limit=5 --mllvm=-enable-fs-discriminator=true --mllvm=-improved-fs-discriminator=true -plugin-opt=thinlto -plugin-opt=-split-machine-functions -z noexecstack --build-id=sha1  -T /usr/lib/modules/7.1.1-2-cachyos/build/scripts/module.lds -o cram.ko cram.o cram.mod.o .module-common.o
