@@ -10,5 +10,10 @@
         ".tmp_versions": true,
         "**/build*": true,
         "**/compile*": true,
-    }
+    },
+
+    "clangd.arguments": [
+        "--header-insertion=never",
+		"--header-insertion-decorators=false"
+    ]
 }

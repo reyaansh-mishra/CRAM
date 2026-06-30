@@ -10,7 +10,9 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-set(KERNEL_DIR "/home/reyaansh/Github/Linux")
+set(KERNEL_DIR1 "/home/reyaansh/Github/Linux")
+set(KERNEL_DIR2 "/usr/lib/modules/7.1.2-3-cachyos/build")
+
 
 set(CRAM_SOURCES
     src/cram_main.c
@@ -19,7 +21,7 @@ set(CRAM_SOURCES
 )
 
 add_custom_target(cram_module ALL
-	COMMAND V=1 $(MAKE) -C ${KERNEL_DIR} M=${CMAKE_CURRENT_SOURCE_DIR}/src LLVM=1 modules
+	COMMAND V=1 $(MAKE) -C ${KERNEL_DIR1} M=${CMAKE_CURRENT_SOURCE_DIR}/src LLVM=1 modules
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Building cram kernel module"
 )
