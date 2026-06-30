@@ -1,6 +1,8 @@
 #define CRAM_MAX_SIZE_BYTES   					(5ULL * 1024 * 1024 * 1024)
 #define CRAM_MAX_PAGES        					(CRAM_MAX_SIZE_BYTES / PAGE_SIZE)
 #define CRAM_MAX_BLOBS 							640
+#define CRAM_DISK_SIZE							(5ULL * 1024 * 1024 * 1024)
+#define CRAM_PAGE_TABLE							CRAM_DISK_SIZE/PAGE_SIZE
 
 #define CRAM_SCRATCHPAD_SIZE				 	(8 * 1024 * 1024)
 #define CRAM_SCRATCHPAD_MAX_PAGES 				CRAM_SCRATCHPAD_SIZE/PAGE_SIZE
@@ -21,14 +23,17 @@ struct cram_dev_fs {
 	uint device_id;		/* N, where N is /dev/cramN */
 };
 
-struct cram_page {		/* Page IDs are built into how cram_page is used. The max possible page_id is CRAM_MAX_PAGES */
+struct cram_page_s {		/* Page IDs are built into how cram_page is used. The max possible page_id is CRAM_MAX_PAGES */
     u32 blob_id;
     u16 page_index_in_blob;
 };
 
-struct blob {			/* Blob IDs are built into how scratchpad_blob is used. The max possible blob_id is CRAM_MAX_BLOBS */
+struct cram_blob {			/* Blob IDs are built into how scratchpad_blob is used. The max possible blob_id is CRAM_MAX_BLOBS */
     u8* blob;
-    size_t size;
+    
+	size_t size;
+	
+	bool compressed;
 	bool active;
 };
 
@@ -39,4 +44,4 @@ int cram_dev_deinit(void);
 
 int cram_blob_init(void);
 int cram_blob_deinit(void);
-int cram_blob_ingest_page(u8 *page);
+int cram_blob_ingest_page(u8 *page, u32 page_id);

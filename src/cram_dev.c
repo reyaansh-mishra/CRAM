@@ -20,7 +20,7 @@ static void cram_submit_bio(struct bio *bio)
 		};
 		
 		case REQ_OP_WRITE: {
-				pr_debug("[CRAM]: Write RECVD");
+				pr_debug("[CRAM]: Write RECVD\n");
 			    struct bio_vec bvec;
 				struct bvec_iter iter;
 				void *kaddr;
@@ -28,19 +28,22 @@ static void cram_submit_bio(struct bio *bio)
 
 				bio_for_each_segment(bvec, bio, iter) {
 					if (bvec.bv_len != PAGE_SIZE) {
-						pr_err("[CRAM]: ERR_BAD_BIO_SIZE: %u\n", bvec.bv_len);
+						pr_err("[CRAM]: ERR_BAD_IO_SIZE: %u\n", bvec.bv_len);
 						bio_io_error(bio);
 						return;
 						break;
 					}
 
 					kaddr = kmap_local_page(bvec.bv_page);
-					src   = (u8 *)kaddr + bvec.bv_offset;;
+					src   = (u8 *)kaddr + bvec.bv_offset;
 
-					int ret = cram_blob_ingest_page(src);
+					sector_t sector = bio->bi_iter.bi_sector;
+					u32 page_id = sector >> (PAGE_SHIFT - SECTOR_SHIFT);
+
+					int ret = cram_blob_ingest_page(src, page_id);
 
 					if (ret != 0) {
-						pr_info("[CRAM]: ERR_BLOB_INGESTION_FAILED");
+						pr_info("[CRAM]: ERR_BLOB_INGESTION_FAILED\n");
 						kunmap_local(kaddr);
 						bio_io_error(bio);
 						return;
@@ -81,7 +84,7 @@ int cram_dev_init(void)
 {
 	struct queue_limits block_limits = { 0 };
 
-	pr_info("[CRAM]: REGISTER BLOCKDEVICE");
+	pr_info("[CRAM]: REGISTER BLOCKDEVICE\n");
 	cram_major_ident = register_blkdev(0, "cram");
 	if (cram_major_ident < 0) {
 		pr_err("[CRAM]: ERR: %d\n", cram_major_ident);

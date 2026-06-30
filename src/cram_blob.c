@@ -15,7 +15,6 @@ static zstd_cctx* 			compression_cram_cctx;
 static zstd_parameters 		compression_params;
 
 /*  Compression Scratchpad */
-struct cram_page 			cram_page[CRAM_SCRATCHPAD_MAX_PAGES];
 static uint 				compression_page_id = 0;
 static u8*					scratchpad_ingestion;
 static u8* 					scratchpad_digestion;	/* MEANT TO DIE ON DEINIT ONLY */
@@ -26,15 +25,17 @@ static void* 				decompression_workspace_ptr;
 static zstd_dctx* 			decompression_cram_cctx;
 
 /* Dispatch Workspace */
-static struct blob			cram_blob[CRAM_MAX_BLOBS];
+static struct cram_blob		cram_blob[CRAM_MAX_BLOBS];
 static uint 				cram_blob_id 		= 0;
 
+/* Decompression */
+// static struct cram_page_s cram_page[CRAM_PAGE_TABLE];
 
 /* cram_blob inits and deinits */
 
 int cram_blob_init(void)
 {
-	pr_info("\n[CRAM]: cram_blob_init()\n");
+	pr_info("[CRAM]: cram_blob_init()\n");
 	
 	pr_info("[CRAM]: SETTING UP cram_zstd_workspace\n");
 
@@ -112,12 +113,17 @@ int cram_blob_deinit(void)
 	cram_blob_id = 0;
 	compression_page_id = 0;
 
-	pr_info("\n[CRAM]: cram_blob_deinit() EXIT\n");
+	pr_info("[CRAM]: cram_blob_deinit() EXIT\n");
 	return 0;
 };
 
+/* COMPRESSION RELATED */
+
 static int cram_blob_dispatch(void)
 {
+	u8* blob;
+	const u8* target;
+
 	pr_info("[CRAM]: BLOB_DISPATCH\n");
 	if (cram_blob_id >= CRAM_MAX_BLOBS) {
     	pr_err("[CRAM]: ERR_BLOB_OVERFLOW: DISREGARDING DISPATCH.\n");
@@ -125,27 +131,31 @@ static int cram_blob_dispatch(void)
 	};
 
 
-	size_t compressed_size = zstd_compress_cctx(compression_cram_cctx, scratchpad_digestion, cram_max_blob_size, scratchpad_ingestion, CRAM_SCRATCHPAD_SIZE, &compression_params);
-	if (zstd_is_error(compressed_size)) {
+	size_t stored_size = zstd_compress_cctx(compression_cram_cctx, scratchpad_digestion, cram_max_blob_size, scratchpad_ingestion, CRAM_SCRATCHPAD_SIZE, &compression_params);
+	if (zstd_is_error(stored_size)) {
 		pr_err("[CRAM]: ERR_FAILED_ZSTD_COMPRESSION: zstd_compress_blob\n");
 		return -EIO;
 	}
 
-	pr_info("[CRAM]: COMPRESSED %d TO %zu\n", CRAM_SCRATCHPAD_SIZE, compressed_size);
+	pr_info("[CRAM]: COMPRESSED %d TO %zu\n", CRAM_SCRATCHPAD_SIZE, stored_size);
 
 
-	u8* blob = kvmalloc(compressed_size, GFP_KERNEL);
-	if (blob == NULL) { pr_err("[CRAM]: ERR_FAILED_ALLOC: blob\n"); return -ENOMEM; }
-
-	if (compressed_size > CRAM_SCRATCHPAD_SIZE) {
-		// Store the original data uncompressed
+	if (stored_size > CRAM_SCRATCHPAD_SIZE) {
+		stored_size = CRAM_SCRATCHPAD_SIZE;
 		pr_info("[CRAM]: OVER-SIZE DETECTED! STORING ORIGINAL AS size %d\n", CRAM_SCRATCHPAD_SIZE);
-		memcpy(blob, scratchpad_ingestion, CRAM_SCRATCHPAD_SIZE);
+		target = scratchpad_ingestion;
+		cram_blob[cram_blob_id].compressed = false;
 	} else {
-		memcpy(blob, scratchpad_digestion, compressed_size);
+		target = scratchpad_digestion;
+		cram_blob[cram_blob_id].compressed = true;
 	}
 
-	cram_blob[cram_blob_id].size 	= compressed_size;
+	blob = kvmalloc(stored_size, GFP_KERNEL);
+	if (blob == NULL) { pr_err("[CRAM]: ERR_FAILED_ALLOC: blob\n"); return -ENOMEM; }
+
+	memcpy(blob, target, stored_size);
+
+	cram_blob[cram_blob_id].size 	= stored_size;
 	cram_blob[cram_blob_id].blob 	= blob;
 	cram_blob[cram_blob_id].active 	= true;	/* COMMIT */
 
@@ -158,12 +168,14 @@ static int cram_blob_dispatch(void)
 };
 
 
-int cram_blob_ingest_page(u8 *page)		/* QUICK NOTE ON OWNERSHIP: WE OWN THE PAGE LIFECYCLE NOW.*/
+int cram_blob_ingest_page(u8 *page, u32 page_id)		/* QUICK NOTE ON OWNERSHIP: WE OWN THE PAGE LIFECYCLE NOW.*/
 {
 	BUG_ON(compression_page_id >= CRAM_SCRATCHPAD_MAX_PAGES);
 	BUG_ON(compression_page_id * PAGE_SIZE >= CRAM_SCRATCHPAD_SIZE);
 
 	/* page MUST point to exactly PAGE_SIZE bytes, otherwise SUFFER */
+
+	pr_debug("[CRAM]: page_id: %d", page_id);
 
 	memcpy(
 		scratchpad_ingestion + compression_page_id * PAGE_SIZE,
@@ -178,3 +190,7 @@ int cram_blob_ingest_page(u8 *page)		/* QUICK NOTE ON OWNERSHIP: WE OWN THE PAGE
 
 	return 0;
 };
+
+/* DECOMPRESSION RELATED */
+// int cram_blob_unpack_page(void)
+// {};

@@ -21,7 +21,7 @@ set(CRAM_SOURCES
 )
 
 add_custom_target(cram_module ALL
-	COMMAND V=1 $(MAKE) -C ${KERNEL_DIR1} M=${CMAKE_CURRENT_SOURCE_DIR}/src LLVM=1 modules
+	COMMAND V=1 $(MAKE) -C ${KERNEL_DIR2} M=${CMAKE_CURRENT_SOURCE_DIR}/src LLVM=1 modules
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Building cram kernel module"
 )
