@@ -49,23 +49,23 @@ int cram_blob_init(void)
 	size_t compression_workspace_size = zstd_cctx_workspace_bound(&compression_params.cParams);
 
 	compression_workspace_ptr = kvmalloc(compression_workspace_size, GFP_KERNEL);
-	if (compression_workspace_ptr == NULL) { return -ENOMEM; };
+	if (compression_workspace_ptr == NULL) { goto cram_init_free; };
 
 	compression_cram_cctx = zstd_init_cctx(compression_workspace_ptr, compression_workspace_size);
-	if (compression_cram_cctx == NULL) { return -ENOMEM; };
+	if (compression_cram_cctx == NULL) { goto cram_init_free; };
 
 	
 	scratchpad_ingestion = kvmalloc(CRAM_SCRATCHPAD_SIZE, GFP_KERNEL);
 	if (scratchpad_ingestion == NULL) {
 		pr_err("[CRAM]: ERR_FAILED_ALLOC: scratchpad_ingestion\n");
-		return -ENOMEM;
+		goto cram_init_free;
 	};
 
 	cram_max_blob_size = zstd_compress_bound(CRAM_SCRATCHPAD_SIZE);
 	scratchpad_digestion = kvmalloc(cram_max_blob_size, GFP_KERNEL);
 	if (scratchpad_digestion == NULL) {
 		pr_err("[CRAM]: ERR_FAILED_ALLOC: scratchpad_digestion\n");
-		return -ENOMEM;
+		goto cram_init_free;
 	}
 
 
@@ -76,10 +76,10 @@ int cram_blob_init(void)
 	size_t decompression_workspace_size = zstd_dctx_workspace_bound();
 
 	decompression_workspace_ptr = kvmalloc(decompression_workspace_size, GFP_KERNEL);
-	if (decompression_workspace_ptr == NULL) { return -ENOMEM; };
+	if (decompression_workspace_ptr == NULL) { goto cram_init_free; };
 
 	decompression_cram_cctx = zstd_init_dctx(decompression_workspace_ptr, decompression_workspace_size);
-	if (decompression_cram_cctx == NULL) { return -ENOMEM; };
+	if (decompression_cram_cctx == NULL) { goto cram_init_free; };
 
 	pr_info("[CRAM]: ZSTD DECOMPRESSION WORKSPACE ALLOC'D: %zu BYTES\n", decompression_workspace_size);
 
@@ -87,6 +87,16 @@ int cram_blob_init(void)
 	pr_info("\n[CRAM]: cram_blob_init() EXITED\n");
 	
 	return 0;
+
+	cram_init_free:
+		kvfree(compression_workspace_ptr);
+		kvfree(scratchpad_ingestion);
+		kvfree(scratchpad_digestion);
+		compression_workspace_ptr = NULL;
+		scratchpad_ingestion = NULL;
+		scratchpad_digestion = NULL;
+		decompression_workspace_ptr = NULL;
+		return -ENOMEM;
 };
 
 
