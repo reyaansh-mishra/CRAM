@@ -1,3 +1,6 @@
+/* BUILD IS NOT FINAL. USING EXPECTS DBG BEHAVIOUR */
+/* EXPECTED TO RUN SINGLE THREAD FOR NOW */
+
 #include <linux/gfp_types.h>
 #include <linux/printk.h>
 #include <linux/sched.h>
@@ -39,6 +42,8 @@ int cram_blob_init(void)
 	
 	pr_info("[CRAM]: SETTING UP cram_zstd_workspace\n");
 
+	/* MEM LEAK KNOWN. WILL FIX LATER */
+
 	/* --------------------- Setup Compression Workspace ------------------------------------------------------- */
 	compression_params = zstd_get_params(CRAM_ZSTD_LEVEL_DEFAULT, CRAM_SCRATCHPAD_SIZE);
 	size_t compression_workspace_size = zstd_cctx_workspace_bound(&compression_params.cParams);
@@ -47,7 +52,8 @@ int cram_blob_init(void)
 	if (compression_workspace_ptr == NULL) { return -ENOMEM; };
 
 	compression_cram_cctx = zstd_init_cctx(compression_workspace_ptr, compression_workspace_size);
-	
+	if (compression_cram_cctx == NULL) { return -ENOMEM; };
+
 	
 	scratchpad_ingestion = kvmalloc(CRAM_SCRATCHPAD_SIZE, GFP_KERNEL);
 	if (scratchpad_ingestion == NULL) {
@@ -73,6 +79,7 @@ int cram_blob_init(void)
 	if (decompression_workspace_ptr == NULL) { return -ENOMEM; };
 
 	decompression_cram_cctx = zstd_init_dctx(decompression_workspace_ptr, decompression_workspace_size);
+	if (decompression_cram_cctx == NULL) { return -ENOMEM; };
 
 	pr_info("[CRAM]: ZSTD DECOMPRESSION WORKSPACE ALLOC'D: %zu BYTES\n", decompression_workspace_size);
 
@@ -99,7 +106,7 @@ int cram_blob_deinit(void)
 
 	for (size_t i = 0; i < CRAM_MAX_BLOBS; i++) {
 		// Action #1: Are We at the end of the blobs?
-		if (cram_blob[i].active == false) break;
+		if (cram_blob[i].active == false) break;	// Intentional: blobs in current implementation are contiguous
 
 		// Action #2: FREEE
 		kvfree(cram_blob[i].blob);
